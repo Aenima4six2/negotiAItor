@@ -89,6 +89,15 @@ npm run dev
 
 This starts both the Vite dev server (UI) and the Node.js backend concurrently. Open `http://localhost:5173` in your browser.
 
+### Docker
+
+```bash
+docker build -t negotiaitor .
+docker run -p 3000:3000 negotiaitor
+```
+
+Open `http://localhost:3000` in your browser. The container serves both the UI and backend on port 3000.
+
 ### Configuration
 
 1. Select your LLM provider and enter your API key in the config panel
