@@ -2,6 +2,8 @@
 
 An AI-powered autonomous negotiation agent that conducts live chat negotiations with service providers (cable, phone, insurance companies, etc.) on your behalf. Point it at a customer service chat, define your goal and bottom line, and let the agent handle the conversation — escalating to you only when a commitment point is reached.
 
+![negotiAItor UI](docs/screenshot.png)
+
 ## How It Works
 
 ```
