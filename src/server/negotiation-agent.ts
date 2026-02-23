@@ -50,6 +50,8 @@ export class NegotiationAgent {
   private waitingForLLM = false;
   private pausedFromState: NegotiationState | null = null;
   private stallManager: StallManager;
+  private userTypingTimer: ReturnType<typeof setTimeout> | null = null;
+  private userTyping = false;
 
   constructor(
     mcp: MCPClient,
@@ -201,6 +203,8 @@ export class NegotiationAgent {
     this.observer.removeAllListeners("snapshot_changed");
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+    if (this.userTypingTimer) clearTimeout(this.userTypingTimer);
+    this.userTyping = false;
     if (this.approvalResolve) {
       this.approvalResolve(false);
       this.approvalResolve = null;
@@ -240,11 +244,42 @@ export class NegotiationAgent {
   }
 
   handleUserDirective(text: string): void {
+    this.clearUserTypingDelay();
     log("directive", text);
     this.addMessage({ sender: "system", text: `User directive: ${text}`, timestamp: Date.now() });
   }
 
+  handleUserTyping(): void {
+    this.userTyping = true;
+    log("typing", "User typing — resetting 20s delay");
+
+    // Clear pending debounce and inactivity timers to suppress agent action
+    if (this.debounceTimer) { clearTimeout(this.debounceTimer); this.debounceTimer = null; }
+    if (this.inactivityTimer) { clearTimeout(this.inactivityTimer); this.inactivityTimer = null; }
+
+    // Reset the typing delay timer
+    if (this.userTypingTimer) clearTimeout(this.userTypingTimer);
+    this.userTypingTimer = setTimeout(() => {
+      log("typing", "User typing delay expired — resuming normal operation");
+      this.userTyping = false;
+      this.userTypingTimer = null;
+      this.resetInactivityTimer();
+      // Trigger a fresh turn so the agent catches up
+      this.mcp.snapshot().then((snapshot) => {
+        this.processTurn(snapshot);
+      }).catch((err) => {
+        log("typing", "Error triggering post-typing turn", String(err));
+      });
+    }, NegotiationAgent.USER_TYPING_DELAY_MS);
+  }
+
+  private clearUserTypingDelay(): void {
+    if (this.userTypingTimer) { clearTimeout(this.userTypingTimer); this.userTypingTimer = null; }
+    this.userTyping = false;
+  }
+
   async handleUserOverride(text: string): Promise<void> {
+    this.clearUserTypingDelay();
     log("override", `User sending message: "${text}"`);
     await this.sendChatMessage(text);
     this.addMessage({ sender: "agent", text, timestamp: Date.now() });
@@ -273,6 +308,11 @@ export class NegotiationAgent {
       return;
     }
 
+    if (this.userTyping) {
+      log("snapshot", "Ignoring — user is typing");
+      return;
+    }
+
     // Debounce — pages update multiple times per render cycle
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
@@ -291,6 +331,10 @@ export class NegotiationAgent {
   private async processTurn(snapshot: string): Promise<void> {
     if (this.state === "paused") {
       log("turn", "Skipping — paused");
+      return;
+    }
+    if (this.userTyping) {
+      log("turn", "Skipping — user is typing");
       return;
     }
     if (this.state === "reaching_human") {
@@ -331,8 +375,8 @@ export class NegotiationAgent {
       const result = await this.llm.chatWithTools(systemPrompt, messages, [REACH_HUMAN_TURN_TOOL]);
       log("reach", "LLM result", result);
 
-      if (this.state === "paused") {
-        log("reach", "Paused during LLM call — discarding result");
+      if (this.state === "paused" || this.userTyping) {
+        log("reach", "Paused or user typing during LLM call — discarding result");
         return;
       }
 
@@ -416,8 +460,8 @@ export class NegotiationAgent {
       const result = await this.llm.chatWithTools(systemPrompt, messages, [NEGOTIATION_TURN_TOOL]);
       log("negotiate", "LLM result", result);
 
-      if (this.state === "paused") {
-        log("negotiate", "Paused during LLM call — discarding result");
+      if (this.state === "paused" || this.userTyping) {
+        log("negotiate", "Paused or user typing during LLM call — discarding result");
         return;
       }
 
@@ -587,6 +631,11 @@ export class NegotiationAgent {
         { role: "user" as const, content: `CONVERSATION SO FAR:\n${conversationText || "(none yet)"}\n\nCURRENT PAGE SNAPSHOT:\n${snapshot}` },
       ], [NEGOTIATION_TURN_TOOL]);
 
+      if (this.userTyping) {
+        log("extract", "User typing during extraction — discarding result");
+        return;
+      }
+
       if (result.type === "tool_call") {
         const turn = result.call.args as {
           newMessages: Array<{ sender: "rep" | "system"; text: string }>;
@@ -746,6 +795,7 @@ export class NegotiationAgent {
 
   private static readonly INACTIVITY_MS = 15_000;
   private static readonly TYPING_INACTIVITY_MS = 5 * 60_000;
+  private static readonly USER_TYPING_DELAY_MS = 20_000;
 
   private resetInactivityTimer(ms = NegotiationAgent.INACTIVITY_MS): void {
     if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
@@ -767,6 +817,11 @@ export class NegotiationAgent {
   private async handleInactivity(): Promise<void> {
     if (this.state === "paused") {
       log("inactivity", "Skipping — paused");
+      return;
+    }
+
+    if (this.userTyping) {
+      log("inactivity", "Skipping — user is typing");
       return;
     }
 

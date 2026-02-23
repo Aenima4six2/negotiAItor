@@ -1,4 +1,6 @@
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
@@ -259,6 +261,13 @@ async function handleClientMessage(msg: ClientMessage): Promise<void> {
       break;
     }
 
+    case "user_typing": {
+      if (agent) {
+        agent.handleUserTyping();
+      }
+      break;
+    }
+
     case "config_update": {
       // Config updates during an active session are stored for next session
       console.log("[Config] Update received:", msg);
@@ -422,6 +431,14 @@ app.post("/api/stop", async (_req, res) => {
   if (agent) await agent.stop();
   await cleanup();
   res.json({ ok: true });
+});
+
+// --- Serve built UI (production) ---
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uiDist = path.resolve(__dirname, "../ui");
+app.use(express.static(uiDist));
+app.get("{*path}", (_req, res) => {
+  res.sendFile(path.join(uiDist, "index.html"));
 });
 
 // --- Start server ---

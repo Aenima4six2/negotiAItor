@@ -139,6 +139,7 @@ export type ClientMessage =
   | { type: "update_session_name"; name: string }
   | { type: "continue_session"; sessionId: string; config: NegotiationConfig; llm: LLMConfig; browser: BrowserConfig }
   | { type: "refine_message"; text: string; llm: LLMConfig; negotiation: NegotiationConfig }
+  | { type: "user_typing" }
   | { type: "get_settings" }
   | { type: "save_setting"; key: string; value: string };
 
