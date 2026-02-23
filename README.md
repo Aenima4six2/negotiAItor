@@ -7,7 +7,7 @@ An AI-powered autonomous negotiation agent that conducts live chat negotiations 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                             Browser                                 │
-│  ┌─────────────────────┐         ┌───────────────────────────────┐  │
+│  ┌──────────────────────┐        ┌───────────────────────────────┐  │
 │  │  React UI            │   WS   │  Node Server                  │  │
 │  │                      │◄──────►│                               │  │
 │  │  ConfigPanel         │        │  NegotiationAgent             │  │
@@ -17,7 +17,7 @@ An AI-powered autonomous negotiation agent that conducts live chat negotiations 
 │  │  MessageInput        │        │                               │  │
 │  │  SessionBrowser      │        │  LLM Router                   │  │
 │  │                      │        │    ├── Anthropic              │  │
-│  └─────────────────────┘         │    ├── OpenAI                 │  │
+│  └──────────────────────┘        │    ├── OpenAI                 │  │
 │                                  │    ├── Ollama                 │  │
 │                                  │    └── Claude Code            │  │
 │                                  │                               │  │
