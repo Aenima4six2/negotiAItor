@@ -5,35 +5,35 @@ An AI-powered autonomous negotiation agent that conducts live chat negotiations 
 ## How It Works
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                            Browser                                   │
-│  ┌────────────────────┐         ┌──────────────────────────────┐    │
-│  │    React UI         │  WS    │        Node Server           │    │
-│  │                     │◄──────►│                              │    │
-│  │  ConfigPanel        │        │  NegotiationAgent            │    │
-│  │  StrategyPanel      │        │    ├── State Machine         │    │
-│  │  NegotiationFeed    │        │    ├── StallManager          │    │
-│  │  ApprovalBanner     │        │    └── WebResearcher         │    │
-│  │  MessageInput       │        │                              │    │
-│  │  SessionBrowser     │        │  LLM Router                  │    │
-│  │                     │        │    ├── Anthropic              │    │
-│  └────────────────────┘        │    ├── OpenAI                 │    │
-│                                 │    ├── Ollama                 │    │
-│                                 │    └── Claude Code            │    │
-│                                 │                              │    │
-│                                 │  SessionStore (SQLite)       │    │
-│                                 └──────────┬───────────────────┘    │
-│                                            │ MCP                    │
-│                                 ┌──────────▼───────────────────┐    │
-│                                 │  Playwright MCP Server       │    │
-│                                 │  (browser automation)        │    │
-│                                 └──────────┬───────────────────┘    │
-│                                            │                        │
-│                                 ┌──────────▼───────────────────┐    │
-│                                 │  Service Provider Chat Page  │    │
-│                                 │  (any provider chat page)    │    │
-│                                 └──────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                             Browser                                 │
+│  ┌─────────────────────┐         ┌───────────────────────────────┐  │
+│  │  React UI            │   WS   │  Node Server                  │  │
+│  │                      │◄──────►│                               │  │
+│  │  ConfigPanel         │        │  NegotiationAgent             │  │
+│  │  StrategyPanel       │        │    ├── State Machine          │  │
+│  │  NegotiationFeed     │        │    ├── StallManager           │  │
+│  │  ApprovalBanner      │        │    └── WebResearcher          │  │
+│  │  MessageInput        │        │                               │  │
+│  │  SessionBrowser      │        │  LLM Router                   │  │
+│  │                      │        │    ├── Anthropic              │  │
+│  └─────────────────────┘        │    ├── OpenAI                  │  │
+│                                  │    ├── Ollama                 │  │
+│                                  │    └── Claude Code            │  │
+│                                  │                               │  │
+│                                  │  SessionStore (SQLite)        │  │
+│                                  └──────────┬────────────────────┘  │
+│                                             │ MCP                   │
+│                                  ┌──────────▼────────────────────┐  │
+│                                  │  Playwright MCP Server        │  │
+│                                  │  (browser automation)         │  │
+│                                  └──────────┬────────────────────┘  │
+│                                             │                       │
+│                                  ┌──────────▼────────────────────┐  │
+│                                  │  Service Provider Chat Page   │  │
+│                                  │  (any provider chat page)     │  │
+│                                  └───────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Core Loop
@@ -72,57 +72,6 @@ idle → connecting → reaching_human → negotiating → done
 - **Manual override**: Send messages directly to the rep, steer the agent with AI Advise, or AI Refine your messages before sending
 - **Web research**: Agent can research competitor pricing mid-negotiation
 - **Dark/light theme**: Toggle via UI
-
-## Project Structure
-
-```
-src/
-├── server/
-│   ├── index.ts                 # Express + WebSocket server
-│   ├── negotiation-agent.ts     # Core agent (state machine, LLM orchestration)
-│   ├── chat-observer.ts         # Polls page snapshots for changes
-│   ├── mcp-client.ts            # Playwright MCP connection
-│   ├── session-store.ts         # SQLite persistence
-│   ├── stall-manager.ts         # Timed stalling messages during approval
-│   ├── web-researcher.ts        # Google search for competitive intel
-│   ├── types.ts                 # Shared type definitions
-│   ├── prompts/
-│   │   └── safety-rules.ts      # Shared LLM prompt constants
-│   └── llm/
-│       ├── router.ts            # Provider factory
-│       ├── types.ts             # LLMProvider interface
-│       ├── tools.ts             # LLM tool definitions
-│       ├── utils.ts             # Response parsing
-│       ├── anthropic.ts         # Anthropic Claude provider
-│       ├── openai.ts            # OpenAI provider
-│       ├── ollama.ts            # Ollama (local) provider
-│       └── claude-code.ts       # Claude Code CLI provider
-├── ui/
-│   ├── App.tsx                  # Main app shell
-│   ├── main.tsx                 # Entry point
-│   ├── theme.css                # CSS variables for theming
-│   ├── types.ts                 # UI type definitions
-│   ├── hooks/
-│   │   └── useWebSocket.ts      # WebSocket connection hook
-│   ├── components/
-│   │   ├── ConfigPanel.tsx      # LLM + session config sidebar
-│   │   ├── StrategyPanel.tsx    # Goal, bottom line, tone, context
-│   │   ├── NegotiationFeed.tsx  # Chat message display
-│   │   ├── MessageInput.tsx     # Send / AI Refine / AI Advise
-│   │   ├── ApprovalBanner.tsx   # Two-step approve/decline flow
-│   │   ├── SessionBrowser.tsx   # Session history sidebar
-│   │   ├── Controls.tsx         # Start/stop/pause buttons
-│   │   ├── ThemeToggle.tsx      # Dark/light toggle
-│   │   └── Logo.tsx             # App logo
-│   ├── constants/
-│   │   ├── defaults.ts          # Default configs and provider lists
-│   │   └── stateDisplay.ts      # State badge colors and labels
-│   ├── styles/
-│   │   └── shared.ts            # Shared form input styles
-│   └── utils/
-│       └── formatDate.ts        # Date/time formatting
-└── data/                        # SQLite database (auto-created)
-```
 
 ## Getting Started
 

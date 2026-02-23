@@ -266,6 +266,10 @@ export function App() {
     [send],
   );
 
+  const handleTyping = useCallback(() => {
+    send({ type: "user_typing" });
+  }, [send]);
+
   const handleApprove = useCallback(
     (requestId: string) => {
       send({ type: "approve_commitment", requestId });
@@ -528,6 +532,7 @@ export function App() {
           onOverride={handleOverride}
           onRefine={handleRefine}
           onAdvise={handleAdvise}
+          onTyping={handleTyping}
           refinedMessage={refinedMessage}
           onRefinedConsumed={clearRefinedMessage}
         />

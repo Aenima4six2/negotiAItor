@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { NegotiationState } from "../types.js";
 import { stateBadgeColors, stateLabels } from "../constants/stateDisplay.js";
 import { inputStyle } from "../styles/shared.js";
@@ -8,6 +8,7 @@ interface MessageInputProps {
   onOverride: (text: string) => void;
   onRefine: (text: string) => void;
   onAdvise: (text: string) => void;
+  onTyping: () => void;
   refinedMessage: string | null;
   onRefinedConsumed: () => void;
 }
@@ -17,10 +18,12 @@ export function MessageInput({
   onOverride,
   onRefine,
   onAdvise,
+  onTyping,
   refinedMessage,
   onRefinedConsumed,
 }: MessageInputProps) {
   const [text, setText] = useState("");
+  const lastTypingSentRef = useRef(0);
   const [refining, setRefining] = useState(false);
 
   const isActive =
@@ -56,6 +59,15 @@ export function MessageInput({
     setText("");
   }, [text, onOverride]);
 
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setText(e.target.value);
+    const now = Date.now();
+    if (now - lastTypingSentRef.current >= 500) {
+      lastTypingSentRef.current = now;
+      onTyping();
+    }
+  }, [onTyping]);
+
   return (
     <div
       style={{
@@ -70,7 +82,7 @@ export function MessageInput({
         <input
           type="text"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleChange}
           placeholder="Send a message as yourself..."
           style={{ ...inputStyle, width: "100%", paddingRight: "52px" }}
           disabled={!isActive}
